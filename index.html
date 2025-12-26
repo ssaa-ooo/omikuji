@@ -3,175 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>本格・八百万おみくじ</title>
+    <title>選べる・八百万おみくじ</title>
     <style>
         body {
             font-family: "Hiragino Mincho ProN", "serif";
             background-color: #fdf5e6;
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
         }
-        .omikuji-card {
+        .container {
             background-color: white;
-            width: 100%;
+            width: 90%;
             max-width: 450px;
-            padding: 30px;
+            padding: 25px;
             border: 5px double #d32f2f;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             text-align: center;
-            position: relative;
         }
         h1 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-top: 0; }
-        .rank { font-size: 3.5rem; font-weight: bold; color: #d32f2f; margin: 25px 0; letter-spacing: 5px; }
         
-        .details-grid {
+        /* 選択画面のレイアウト */
+        .selection-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            text-align: left;
+            grid-template-columns: repeat(2, 1fr); /* スマホで見やすい2列 */
+            gap: 15px;
             margin-top: 20px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
         }
-        .detail-item { border-bottom: 1px dashed #eee; padding-bottom: 8px; }
-        .label { font-weight: bold; color: #d32f2f; margin-right: 8px; min-width: 70px; display: inline-block; }
-        
-        button {
+        .omikuji-stick {
+            background-color: #e0c38c;
+            color: #5d4037;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s, background-color 0.2s;
+            border: 2px solid #bca67e;
+        }
+        .omikuji-stick:active {
+            transform: scale(0.95);
             background-color: #d32f2f;
             color: white;
-            border: none;
-            padding: 15px 35px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            border-radius: 5px;
-            font-family: inherit;
-            transition: 0.3s;
         }
-        button:hover { background-color: #b71c1c; transform: scale(1.05); }
+
+        /* 結果表示 */
+        .rank { font-size: 3.5rem; font-weight: bold; color: #d32f2f; margin: 20px 0; }
+        .details-grid { text-align: left; border-top: 1px solid #eee; padding-top: 20px; }
+        .detail-item { border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px; font-size: 0.95rem; }
+        .label { font-weight: bold; color: #d32f2f; margin-right: 8px; }
+
         .hidden { display: none; }
+        button {
+            background-color: #d32f2f; color: white; border: none; padding: 12px 30px;
+            font-size: 1.1rem; cursor: pointer; border-radius: 5px; font-family: inherit;
+        }
     </style>
 </head>
 <body>
 
-<div class="omikuji-card">
+<div class="container">
     <h1>御神籤</h1>
-    
-    <div id="intro">
-        <p>運勢を占います。<br>ボタンを押してください。</p>
-        <button onclick="drawOmikuji()">おみくじを引く</button>
+
+    <div id="intro-screen">
+        <p>心を決めて、ボタンを押してください。</p>
+        <button onclick="startSelection()">おみくじを振る</button>
     </div>
 
-    <div id="result-area" class="hidden">
+    <div id="selection-screen" class="hidden">
+        <p>10本の棒から1つ選んでください</p>
+        <div class="selection-grid" id="stick-container">
+            </div>
+    </div>
+
+    <div id="result-screen" class="hidden">
         <div class="rank" id="rank-display"></div>
         <div class="details-grid" id="details-display"></div>
-        <button onclick="resetOmikuji()" style="margin-top: 30px; background-color: #555;">再び引く</button>
+        <button onclick="resetApp()" style="margin-top: 20px; background-color: #555;">最初に戻る</button>
     </div>
 </div>
 
 <script>
-    // 1. ランクと出現確率（合計100になるように設定）
     const weightedRanks = [
-        { name: "大吉", weight: 15 },
-        { name: "吉",   weight: 15 },
-        { name: "中吉", weight: 20 },
-        { name: "小吉", weight: 20 },
-        { name: "末吉", weight: 20 },
-        { name: "凶",   weight: 5 },
+        { name: "大吉", weight: 15 }, { name: "吉", weight: 15 },
+        { name: "中吉", weight: 20 }, { name: "小吉", weight: 20 },
+        { name: "末吉", weight: 20 }, { name: "凶", weight: 5 },
         { name: "大凶", weight: 5 }
     ];
 
-    // 2. カテゴリごとの詳細コメント（ここを増やすと組み合わせが無限に増えます）
     const commentPool = {
-        "願望": [
-            "時間はかかるが、誠意を持って進めば叶う。",
-            "驚くほどスムーズに運ぶ。感謝を忘れずに。",
-            "今は控えめに。時期を待てば道が開ける。",
-            "他人の助力を仰ぐことで、道が開ける。"
-        ],
-        "恋愛": [
-            "相手を思いやる心が、良き縁を運ぶ。",
-            "焦りは禁物。ゆっくりと距離を縮めなさい。",
-            "予期せぬ出会いがある。身だしなみを整えて。",
-            "誠実さが鍵。嘘偽りのない言葉が心を動かす。"
-        ],
-        "学問": [
-            "努力した分だけ結果が出る。最後まで諦めるな。",
-            "基礎を固めよ。応用はその後からついてくる。",
-            "集中力が鍵。静かな場所での学習が吉。",
-            "仲間の刺激が良い影響を与える。共に励め。"
-        ],
-        "仕事": [
-            "地道な努力が認められる時。油断は禁物。",
-            "新たな挑戦に吉。自信を持って進め。",
-            "周囲との連携を大切に。独断は避けよ。",
-            "一歩引いて全体を見ることで、成功の兆しあり。"
-        ],
-        "金運": [
-            "無駄遣いを慎めば、自然と蓄えが増える。",
-            "思いがけない臨時収入がある予感。",
-            "投資や勝負事は控えめに。今は守りの時。",
-            "計画的な支出が運気を呼び込む。"
-        ],
-        "健康": [
-            "規則正しい生活が何よりの薬となる。",
-            "疲れが溜まりやすい時期。休息を優先せよ。",
-            "適度な運動を取り入れると、運気が上がる。",
-            "食事に気を配れ。旬のものを食べると吉。"
-        ],
-        "失物": [
-            "身近な場所にある。よく整理して探せ。",
-            "遅れて出てくる。焦らず待つのが良い。",
-            "他人の助けによって見つかる兆しあり。",
-            "諦めた頃にひょっこりと現れるだろう。"
-        ]
+        "願望": ["時間はかかるが叶う。", "驚くほどスムーズに運ぶ。", "今は控えめにせよ。", "他人の助けで叶う。"],
+        "恋愛": ["思いやる心が縁を呼ぶ。", "焦りは禁物。ゆっくりと。", "予期せぬ出会いあり。", "誠実さが鍵。"],
+        "仕事": ["地道な努力が実る。", "新たな挑戦に吉。", "周囲との連携を大切に。", "一歩引いて全体を見よ。"],
+        "金運": ["無駄遣いを慎めば吉。", "臨時収入の予感。", "今は守りの時。", "計画的な支出を。"],
+        "健康": ["規則正しい生活が一番。", "休息を優先せよ。", "適度な運動が運気を上げる。", "旬のものを食べよ。"]
     };
 
-    // 確率に基づいてランクを決定する関数
+    function startSelection() {
+        document.getElementById('intro-screen').classList.add('hidden');
+        document.getElementById('selection-screen').classList.remove('hidden');
+        
+        const container = document.getElementById('stick-container');
+        container.innerHTML = ''; // リセット
+        
+        // 10本の棒を作成
+        for (let i = 1; i <= 10; i++) {
+            const stick = document.createElement('div');
+            stick.className = 'omikuji-stick';
+            stick.textContent = `第 ${i} 番`;
+            stick.onclick = () => showResult();
+            container.appendChild(stick);
+        }
+    }
+
     function getWeightedRank() {
         let randomNum = Math.random() * 100;
         for (const r of weightedRanks) {
             if (randomNum < r.weight) return r.name;
             randomNum -= r.weight;
         }
-        return "吉"; // 万が一のフォールバック
+        return "吉";
     }
 
-    // 各カテゴリからランダムに1つ選ぶ関数
-    function getRandomComment(category) {
-        const list = commentPool[category];
-        return list[Math.floor(Math.random() * list.length)];
-    }
-
-    function drawOmikuji() {
-        // ランクを決定
+    function showResult() {
         const rank = getWeightedRank();
         document.getElementById('rank-display').textContent = rank;
 
-        // 全カテゴリのコメントを生成
         let html = "";
         for (let category in commentPool) {
-            const comment = getRandomComment(category);
-            html += `
-                <div class="detail-item">
-                    <span class="label">【${category}】</span>
-                    <span class="text">${comment}</span>
-                </div>
-            `;
+            const list = commentPool[category];
+            const comment = list[Math.floor(Math.random() * list.length)];
+            html += `<div class="detail-item"><span class="label">【${category}】</span>${comment}</div>`;
         }
         document.getElementById('details-display').innerHTML = html;
 
-        // 表示の切り替え
-        document.getElementById('intro').classList.add('hidden');
-        document.getElementById('result-area').classList.remove('hidden');
+        document.getElementById('selection-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
     }
 
-    function resetOmikuji() {
-        document.getElementById('intro').classList.remove('hidden');
-        document.getElementById('result-area').classList.add('hidden');
+    function resetApp() {
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('intro-screen').classList.remove('hidden');
     }
 </script>
 
