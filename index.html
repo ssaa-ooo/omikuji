@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>本格・選べる八百万おみくじ</title>
+    <title>2026年・八百万おみくじ</title>
     <style>
         body {
             font-family: "Hiragino Mincho ProN", "serif";
@@ -13,7 +13,6 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            /* スマホでのタップハイライトを無効化 */
             -webkit-tap-highlight-color: transparent;
         }
         .container {
@@ -24,7 +23,6 @@
             border: 5px double #d32f2f;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             text-align: center;
-            /* はみ出した部分を隠す */
             overflow: hidden; 
         }
         h1 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-top: 0; }
@@ -46,9 +44,9 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
             transition: 0.2s;
             border: 2px solid #bca67e;
-            user-select: none; /* 文字選択を防ぐ */
+            user-select: none;
+            font-size: 1.2rem;
         }
-        /* スマホでのタッチ時の挙動 */
         @media (hover: none) {
             .omikuji-stick:active {
                 transform: scale(0.9);
@@ -56,17 +54,10 @@
                 color: white;
             }
         }
-        /* PCでのホバー時の挙動 */
-        @media (hover: hover) {
-            .omikuji-stick:hover {
-                transform: translateY(-3px);
-                box-shadow: 2px 5px 10px rgba(0,0,0,0.3);
-            }
-        }
 
-        /* 鑑定中（待ち時間）の演出 */
+        /* 鑑定中演出 */
         .loading-text {
-            font-size: 1.5rem; color: #d32f2f; font-weight: bold; margin: 50px 0;
+            font-size: 1.5rem; color: #d32f2f; font-weight: bold; margin: 80px 0 20px 0;
             animation: pulse 1.2s infinite;
         }
         @keyframes pulse {
@@ -75,74 +66,90 @@
             100% { transform: scale(1); opacity: 0.7; }
         }
 
-        /* --- 結果表示のアニメーション --- */
-        /* アニメーションさせる範囲のラッパー */
+        /* 結果表示のアニメーション */
         #result-scroll-box {
-            /* 初期状態：下側を100%切り抜いて隠す */
             clip-path: inset(0 0 100% 0);
         }
-        /* このクラスが付くとアニメーション開始 */
         .scroll-animation {
-            animation: scrollOpen 2.5s ease-in-out forwards;
+            animation: scrollOpen 3s ease-in-out forwards;
         }
-        /* 上から下へ開く動きの定義 */
         @keyframes scrollOpen {
             0% { clip-path: inset(0 0 100% 0); }
-            100% { clip-path: inset(0 0 0 0); } /* 切り抜きなし＝全表示 */
+            100% { clip-path: inset(0 0 0 0); }
         }
 
-        /* 後から出るボタン */
-        #back-button {
-            opacity: 0; /* 最初は透明 */
-            transition: opacity 1s;
+        /* 結果のデザイン */
+        .rank { font-size: 3.5rem; font-weight: bold; color: #d32f2f; margin: 20px 0 10px 0; letter-spacing: 5px; }
+        
+        .year-summary {
+            background-color: #fffaf0;
+            border: 1px solid #e0c38c;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #333;
+            line-height: 1.7;
+            font-size: 1rem;
         }
-        /* このクラスが付くとふわっと現れる */
-        .fade-in {
-            opacity: 1 !important;
+        .summary-title {
+            display: block;
+            color: #d32f2f;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #d32f2f;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        /* 結果の中身 */
-        .rank { font-size: 3.5rem; font-weight: bold; color: #d32f2f; margin: 20px 0; }
-        .details-grid { text-align: left; border-top: 1px solid #eee; padding-top: 20px; padding-bottom: 10px; }
-        .detail-item { border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px; font-size: 0.95rem; line-height: 1.6; }
-        .label { font-weight: bold; color: #d32f2f; margin-right: 8px; white-space: nowrap; }
+        .details-grid { text-align: left; border-top: 1px solid #eee; padding-top: 20px; }
+        .detail-item { border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px; font-size: 0.95rem; }
+        .label { font-weight: bold; color: #d32f2f; margin-right: 8px; }
 
         .hidden { display: none; }
+        #back-button { opacity: 0; transition: opacity 1s; }
+        .fade-in { opacity: 1 !important; }
+        
         button.primary-btn {
             background-color: #d32f2f; color: white; border: none; padding: 12px 30px;
             font-size: 1.1rem; cursor: pointer; border-radius: 5px; font-family: inherit;
-            -webkit-tap-highlight-color: transparent;
         }
         button.secondary-btn {
             margin-top: 20px; background-color: #555; color: white; border: none; padding: 12px 30px;
             font-size: 1rem; cursor: pointer; border-radius: 5px; font-family: inherit;
-            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>御神籤</h1>
+    <h1>二〇二六年 御神籤</h1>
 
     <div id="intro-screen">
-        <p style="margin: 30px 0;">心を静め、<br>運命の一本をお選びください。</p>
+        <p style="margin: 30px 0;">新たな一年の運勢を<br>お選びください。</p>
         <button class="primary-btn" onclick="startSelection()">おみくじを振る</button>
     </div>
 
     <div id="selection-screen" class="hidden">
-        <p>いずれか一つをタップしてください</p>
+        <p>直感で一本お選びください</p>
         <div class="selection-grid" id="stick-container"></div>
     </div>
 
     <div id="loading-screen" class="hidden">
-        <div class="loading-text" style="margin-top: 80px;">鑑定中...</div>
-        <p>そのままお待ちください</p>
+        <div class="loading-text">鑑定中...</div>
+        <p>二〇二六年の運命を読み解いています</p>
     </div>
 
     <div id="result-screen" class="hidden">
         <div id="result-scroll-box">
             <div class="rank" id="rank-display"></div>
+            
+            <div class="year-summary">
+                <span class="summary-title">二〇二六年 概況</span>
+                <span id="summary-text"></span>
+            </div>
+
             <div class="details-grid" id="details-display"></div>
         </div>
         <button id="back-button" class="secondary-btn" onclick="resetApp()">最初に戻る</button>
@@ -157,16 +164,26 @@
         { name: "大凶", weight: 5 }
     ];
 
-    // コメントのプール（自由に増やしてください）
+    // 漢数字の配列
+    const kanjiNumbers = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+
+    // 2026年専用の要約メッセージ
+    const yearSummaries = {
+        "大吉": "これまでの努力が大きな実を結ぶ、輝かしい一年。新たな挑戦はすべて追い風となります。自信を持って前へ進んでください。",
+        "吉": "安定した運気に包まれ、穏やかに過ごせる一年。周囲への感謝を形にすることで、さらに運気が上昇します。",
+        "中吉": "公私ともに充実した年になります。特に人間関係で実りがありそう。丁寧なコミュニケーションを心がけましょう。",
+        "小吉": "大きな波乱はなく、一歩ずつ着実に成長できる年。派手さはありませんが、足元を固めるには最適な時期です。",
+        "末吉": "前半は忍耐が必要ですが、後半にかけて徐々に運気が開けます。焦らず、準備を整えることに注力してください。",
+        "凶": "慎重さが求められる年。無理な拡張は避け、現状維持と心身のケアを優先しましょう。誠実に過ごせば難を逃れます。",
+        "大凶": "試練の年となる予感。しかし、これは飛躍に向けたデトックスの時期。古いものを手放すことで、新しい運気が入り込みます。"
+    };
+
     const commentPool = {
-        "願望": ["時を待てば必ず叶う。", "驚くほど順調に進む。", "今は控えめが吉。", "他人の助けで成就する。", "焦ると損をする。"],
-        "恋愛": ["誠実な心が縁を結ぶ。", "ゆっくりと愛を育め。", "予期せぬ良縁あり。", "自分磨きが鍵となる。", "相手の気持ちを考えよ。"],
-        "仕事": ["地道な努力が評価される。", "新たな分野に挑戦せよ。", "周囲との協調を大切に。", "全体を見渡す余裕を持て。", "準備不足に注意。"],
-        "金運": ["無駄を省けば蓄財できる。", "思わぬ臨時収入の予感。", "今は財布の紐を締めよ。", "計画的な運用が吉。", "甘い話には乗るな。"],
-        "健康": ["規則正しい生活を心がけよ。", "十分な休息が必要。", "適度な運動を取り入れよ。", "旬の食材が体に良い。", "ストレスを溜めるな。"],
-        "学問": ["日々の積み重ねが実を結ぶ。", "基礎を疎かにするな。", "集中できる環境を作れ。", "苦手を克服する好機。", "目標を高く持て。"],
-        "旅行": ["北の方角に吉あり。", "計画をしっかり立てよ。", "近場でのんびりが良い。", "旅先での出会いを大切に。", "忘れ物に注意。"],
-        "失物": ["身近な場所にある。", "探すのを止めると出る。", "高い所を探してみよ。", "人目につかない所にある。", "すぐには見つからぬ。"]
+        "願望": ["時間はかかるが必ず叶う。", "驚くほど順調に進む。", "今は控えめが吉。", "他人の助けで成就する。"],
+        "恋愛": ["誠実な心が縁を結ぶ。", "ゆっくりと愛を育め。", "予期せぬ良縁あり。", "相手の気持ちを考えよ。"],
+        "仕事": ["地道な努力が評価される。", "新たな分野に挑戦せよ。", "周囲との協調を大切に。", "準備不足に注意。"],
+        "金運": ["無駄を省けば蓄財できる。", "思わぬ臨時収入の予感。", "今は財布の紐を締めよ。", "計画的な運用が吉。"],
+        "健康": ["規則正しい生活を心がけよ。", "十分な休息が必要。", "旬の食材が体に良い。", "ストレスを溜めるな。"]
     };
 
     function startSelection() {
@@ -174,31 +191,25 @@
         document.getElementById('selection-screen').classList.remove('hidden');
         const container = document.getElementById('stick-container');
         container.innerHTML = '';
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 0; i < 10; i++) {
             const stick = document.createElement('div');
             stick.className = 'omikuji-stick';
-            stick.textContent = `${i}`;
-            // タッチデバイスでの反応を良くするため touchstart も設定
-            stick.addEventListener('touchstart', function(e){ e.preventDefault(); processResult(); }, {passive: false});
-            stick.addEventListener('click', processResult);
+            stick.textContent = `第${kanjiNumbers[i]}番`; // 漢数字を使用
+            stick.onclick = processResult;
             container.appendChild(stick);
         }
     }
 
-    let isProcessing = false; // 多重タップ防止
-
+    let isProcessing = false;
     function processResult() {
         if (isProcessing) return;
         isProcessing = true;
-
         document.getElementById('selection-screen').classList.add('hidden');
         document.getElementById('loading-screen').classList.remove('hidden');
-
-        // 2秒間の鑑定中演出
         setTimeout(() => {
             showFinalResult();
             isProcessing = false;
-        }, 2000);
+        }, 2200);
     }
 
     function getWeightedRank() {
@@ -211,45 +222,37 @@
     }
 
     function showFinalResult() {
-        // 結果の生成処理
         const rank = getWeightedRank();
         document.getElementById('rank-display').textContent = rank;
+        
+        // 2026年サマリーをセット
+        document.getElementById('summary-text').textContent = yearSummaries[rank];
+
         let html = "";
-        // カテゴリをランダムに5つ選んで表示する（全表示だと長いので）
-        const categories = Object.keys(commentPool).sort(() => 0.5 - Math.random()).slice(0, 5);
-        for (let category of categories) {
+        for (let category in commentPool) {
             const list = commentPool[category];
             const comment = list[Math.floor(Math.random() * list.length)];
             html += `<div class="detail-item"><span class="label">【${category}】</span>${comment}</div>`;
         }
         document.getElementById('details-display').innerHTML = html;
 
-        // 画面切り替え
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
 
-        // --- アニメーションの開始処理 ---
         const scrollBox = document.getElementById('result-scroll-box');
         const backButton = document.getElementById('back-button');
         
-        // アニメーション用クラスをリセット（強制再描画）
         scrollBox.classList.remove('scroll-animation');
         backButton.classList.remove('fade-in');
-        void scrollBox.offsetWidth; // ブラウザにリフローを強制させるハック
-
-        // アニメーション開始
+        void scrollBox.offsetWidth; 
         scrollBox.classList.add('scroll-animation');
 
-        // おみくじが開く時間（2.5秒）待ってからボタンを表示
         setTimeout(() => {
             backButton.classList.add('fade-in');
-        }, 2500);
+        }, 3000); // スクロール完了に合わせて表示
     }
 
     function resetApp() {
-        // 状態をリセット
-        document.getElementById('result-scroll-box').classList.remove('scroll-animation');
-        document.getElementById('back-button').classList.remove('fade-in');
         document.getElementById('result-screen').classList.add('hidden');
         document.getElementById('intro-screen').classList.remove('hidden');
     }
