@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026年・八百万おみくじ</title>
+    <title>二〇二六年・本格八百万おみくじ</title>
     <style>
         body {
             font-family: "Hiragino Mincho ProN", "serif";
@@ -17,27 +17,27 @@
         }
         .container {
             background-color: white;
-            width: 90%;
-            max-width: 450px;
-            padding: 25px;
+            width: 92%;
+            max-width: 480px;
+            padding: 20px;
             border: 5px double #d32f2f;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             text-align: center;
             overflow: hidden; 
         }
-        h1 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-top: 0; }
+        h1 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-top: 0; font-size: 1.5rem; }
         
         /* 選択画面 */
         .selection-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            gap: 12px;
             margin-top: 20px;
         }
         .omikuji-stick {
             background-color: #e0c38c;
             color: #5d4037;
-            padding: 15px;
+            padding: 12px;
             border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
@@ -45,11 +45,11 @@
             transition: 0.2s;
             border: 2px solid #bca67e;
             user-select: none;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
         @media (hover: none) {
             .omikuji-stick:active {
-                transform: scale(0.9);
+                transform: scale(0.95);
                 background-color: #d32f2f;
                 color: white;
             }
@@ -71,7 +71,7 @@
             clip-path: inset(0 0 100% 0);
         }
         .scroll-animation {
-            animation: scrollOpen 3s ease-in-out forwards;
+            animation: scrollOpen 4s ease-in-out forwards; /* 項目が増えたので少し時間を長く */
         }
         @keyframes scrollOpen {
             0% { clip-path: inset(0 0 100% 0); }
@@ -79,33 +79,44 @@
         }
 
         /* 結果のデザイン */
-        .rank { font-size: 3.5rem; font-weight: bold; color: #d32f2f; margin: 20px 0 10px 0; letter-spacing: 5px; }
+        .rank { font-size: 3.2rem; font-weight: bold; color: #d32f2f; margin: 15px 0 10px 0; letter-spacing: 8px; }
         
         .year-summary {
             background-color: #fffaf0;
             border: 1px solid #e0c38c;
-            padding: 15px;
-            margin-bottom: 25px;
+            padding: 12px;
+            margin-bottom: 20px;
             border-radius: 5px;
             font-weight: bold;
             color: #333;
-            line-height: 1.7;
-            font-size: 1rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
         }
         .summary-title {
             display: block;
             color: #d32f2f;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             margin-bottom: 5px;
             border-bottom: 1px solid #d32f2f;
             width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 0 auto 5px auto;
         }
 
-        .details-grid { text-align: left; border-top: 1px solid #eee; padding-top: 20px; }
-        .detail-item { border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px; font-size: 0.95rem; }
-        .label { font-weight: bold; color: #d32f2f; margin-right: 8px; }
+        .details-grid { text-align: left; border-top: 1px solid #eee; padding-top: 15px; }
+        .detail-item { 
+            border-bottom: 1px dashed #eee; 
+            padding: 6px 0; 
+            display: flex;
+            align-items: flex-start;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+        .label { 
+            font-weight: bold; 
+            color: #d32f2f; 
+            min-width: 5.5em; /* 漢数字3文字分＋αの幅を確保 */
+            display: inline-block;
+        }
 
         .hidden { display: none; }
         #back-button { opacity: 0; transition: opacity 1s; }
@@ -164,10 +175,8 @@
         { name: "大凶", weight: 5 }
     ];
 
-    // 漢数字の配列
     const kanjiNumbers = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
 
-    // 2026年専用の要約メッセージ
     const yearSummaries = {
         "大吉": "これまでの努力が大きな実を結ぶ、輝かしい一年。新たな挑戦はすべて追い風となります。自信を持って前へ進んでください。",
         "吉": "安定した運気に包まれ、穏やかに過ごせる一年。周囲への感謝を形にすることで、さらに運気が上昇します。",
@@ -179,11 +188,17 @@
     };
 
     const commentPool = {
-        "願望": ["時間はかかるが必ず叶う。", "驚くほど順調に進む。", "今は控えめが吉。", "他人の助けで成就する。"],
-        "恋愛": ["誠実な心が縁を結ぶ。", "ゆっくりと愛を育め。", "予期せぬ良縁あり。", "相手の気持ちを考えよ。"],
-        "仕事": ["地道な努力が評価される。", "新たな分野に挑戦せよ。", "周囲との協調を大切に。", "準備不足に注意。"],
-        "金運": ["無駄を省けば蓄財できる。", "思わぬ臨時収入の予感。", "今は財布の紐を締めよ。", "計画的な運用が吉。"],
-        "健康": ["規則正しい生活を心がけよ。", "十分な休息が必要。", "旬の食材が体に良い。", "ストレスを溜めるな。"]
+        "願い事": ["時間はかかるが必ず叶う。", "驚くほど順調に進む。感謝せよ。", "今は控えめが吉。時を待て。", "他人の助けで成就する。"],
+        "待ち人": ["来る。驚くような便りあり。", "遅れるが必ず来る。", "来るが期待外れのことあり。", "来ない。便りを待て。"],
+        "失し物": ["出る。高い所にあり。", "遅れて見つかる。焦るな。", "出ない。諦めが肝心。", "近い所にあり。よく探せ。"],
+        "旅行": ["北の方角に吉あり。", "計画をしっかり立てて行け。", "控えよ。来年が良し。", "行き先で良い出会いあり。"],
+        "ビジネス": ["利益あり。自信を持って進め。", "苦労するが後に報われる。", "計画を再検討せよ。独断は禁物。", "誠実な対応が成功を呼ぶ。"],
+        "学問": ["努力が実る。油断するな。", "基礎を固めよ。道が開ける。", "誘惑に勝て。集中力が鍵。", "安心して励め。結果は出る。"],
+        "争い事": ["勝つ。しかし後に引くな。", "負ける。今は引くのが吉。", "話し合いで円満に解決する。", "長引く。冷静さを保て。"],
+        "恋愛": ["誠実な心が縁を結ぶ。", "良い出会いあり。自分を磨け。", "焦るな。自然な流れに任せよ。", "相手を思いやる心が鍵。"],
+        "縁談": ["まとまる。親類に相談せよ。", "時期を待て。焦ると損をする。", "良い話あり。前向きに考えよ。", "今は控えめに。縁が薄い。"],
+        "転居": ["吉。急ぐ必要はない。", "良い場所が見つかる。北が良し。", "今は留まれ。時期ではない。", "方角を確かめよ。東が吉。"],
+        "病気": ["軽んじるな。必ず治る。", "信心せよ。回復に向かう。", "長引くが安心して養生せよ。", "早期の対応が肝要なり。"]
     };
 
     function startSelection() {
@@ -194,7 +209,7 @@
         for (let i = 0; i < 10; i++) {
             const stick = document.createElement('div');
             stick.className = 'omikuji-stick';
-            stick.textContent = `第${kanjiNumbers[i]}番`; // 漢数字を使用
+            stick.textContent = `第${kanjiNumbers[i]}番`;
             stick.onclick = processResult;
             container.appendChild(stick);
         }
@@ -224,15 +239,18 @@
     function showFinalResult() {
         const rank = getWeightedRank();
         document.getElementById('rank-display').textContent = rank;
-        
-        // 2026年サマリーをセット
         document.getElementById('summary-text').textContent = yearSummaries[rank];
 
         let html = "";
         for (let category in commentPool) {
             const list = commentPool[category];
             const comment = list[Math.floor(Math.random() * list.length)];
-            html += `<div class="detail-item"><span class="label">【${category}】</span>${comment}</div>`;
+            html += `
+                <div class="detail-item">
+                    <span class="label">【${category}】</span>
+                    <span class="text">${comment}</span>
+                </div>
+            `;
         }
         document.getElementById('details-display').innerHTML = html;
 
@@ -249,7 +267,7 @@
 
         setTimeout(() => {
             backButton.classList.add('fade-in');
-        }, 3000); // スクロール完了に合わせて表示
+        }, 4000); // 項目数に合わせて待ち時間を4秒に延長
     }
 
     function resetApp() {
