@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>本格・選べる八百万おみくじ</title>
     <style>
         body {
@@ -13,6 +13,8 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            /* スマホでのタップハイライトを無効化 */
+            -webkit-tap-highlight-color: transparent;
         }
         .container {
             background-color: white;
@@ -22,6 +24,8 @@
             border: 5px double #d32f2f;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             text-align: center;
+            /* はみ出した部分を隠す */
+            overflow: hidden; 
         }
         h1 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-top: 0; }
         
@@ -42,20 +46,28 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
             transition: 0.2s;
             border: 2px solid #bca67e;
+            user-select: none; /* 文字選択を防ぐ */
         }
-        .omikuji-stick:active {
-            transform: scale(0.9);
-            background-color: #d32f2f;
-            color: white;
+        /* スマホでのタッチ時の挙動 */
+        @media (hover: none) {
+            .omikuji-stick:active {
+                transform: scale(0.9);
+                background-color: #d32f2f;
+                color: white;
+            }
+        }
+        /* PCでのホバー時の挙動 */
+        @media (hover: hover) {
+            .omikuji-stick:hover {
+                transform: translateY(-3px);
+                box-shadow: 2px 5px 10px rgba(0,0,0,0.3);
+            }
         }
 
         /* 鑑定中（待ち時間）の演出 */
         .loading-text {
-            font-size: 1.5rem;
-            color: #d32f2f;
-            font-weight: bold;
-            margin: 50px 0;
-            animation: pulse 1.2s infinite; /* 点滅・拡大アニメーション */
+            font-size: 1.5rem; color: #d32f2f; font-weight: bold; margin: 50px 0;
+            animation: pulse 1.2s infinite;
         }
         @keyframes pulse {
             0% { transform: scale(1); opacity: 0.7; }
@@ -63,16 +75,48 @@
             100% { transform: scale(1); opacity: 0.7; }
         }
 
-        /* 結果表示 */
+        /* --- 結果表示のアニメーション --- */
+        /* アニメーションさせる範囲のラッパー */
+        #result-scroll-box {
+            /* 初期状態：下側を100%切り抜いて隠す */
+            clip-path: inset(0 0 100% 0);
+        }
+        /* このクラスが付くとアニメーション開始 */
+        .scroll-animation {
+            animation: scrollOpen 2.5s ease-in-out forwards;
+        }
+        /* 上から下へ開く動きの定義 */
+        @keyframes scrollOpen {
+            0% { clip-path: inset(0 0 100% 0); }
+            100% { clip-path: inset(0 0 0 0); } /* 切り抜きなし＝全表示 */
+        }
+
+        /* 後から出るボタン */
+        #back-button {
+            opacity: 0; /* 最初は透明 */
+            transition: opacity 1s;
+        }
+        /* このクラスが付くとふわっと現れる */
+        .fade-in {
+            opacity: 1 !important;
+        }
+
+        /* 結果の中身 */
         .rank { font-size: 3.5rem; font-weight: bold; color: #d32f2f; margin: 20px 0; }
-        .details-grid { text-align: left; border-top: 1px solid #eee; padding-top: 20px; }
-        .detail-item { border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px; font-size: 0.95rem; }
-        .label { font-weight: bold; color: #d32f2f; margin-right: 8px; }
+        .details-grid { text-align: left; border-top: 1px solid #eee; padding-top: 20px; padding-bottom: 10px; }
+        .detail-item { border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px; font-size: 0.95rem; line-height: 1.6; }
+        .label { font-weight: bold; color: #d32f2f; margin-right: 8px; white-space: nowrap; }
 
         .hidden { display: none; }
-        button {
+        button.primary-btn {
             background-color: #d32f2f; color: white; border: none; padding: 12px 30px;
             font-size: 1.1rem; cursor: pointer; border-radius: 5px; font-family: inherit;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button.secondary-btn {
+            margin-top: 20px; background-color: #555; color: white; border: none; padding: 12px 30px;
+            font-size: 1rem; cursor: pointer; border-radius: 5px; font-family: inherit;
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
@@ -82,24 +126,26 @@
     <h1>御神籤</h1>
 
     <div id="intro-screen">
-        <p>心を決めて、ボタンを押してください。</p>
-        <button onclick="startSelection()">おみくじを振る</button>
+        <p style="margin: 30px 0;">心を静め、<br>運命の一本をお選びください。</p>
+        <button class="primary-btn" onclick="startSelection()">おみくじを振る</button>
     </div>
 
     <div id="selection-screen" class="hidden">
-        <p>10本の棒から1つ選んでください</p>
+        <p>いずれか一つをタップしてください</p>
         <div class="selection-grid" id="stick-container"></div>
     </div>
 
     <div id="loading-screen" class="hidden">
-        <div class="loading-text">運勢を鑑定中...</div>
-        <p>しばらくお待ちください</p>
+        <div class="loading-text" style="margin-top: 80px;">鑑定中...</div>
+        <p>そのままお待ちください</p>
     </div>
 
     <div id="result-screen" class="hidden">
-        <div class="rank" id="rank-display"></div>
-        <div class="details-grid" id="details-display"></div>
-        <button onclick="resetApp()" style="margin-top: 20px; background-color: #555;">最初に戻る</button>
+        <div id="result-scroll-box">
+            <div class="rank" id="rank-display"></div>
+            <div class="details-grid" id="details-display"></div>
+        </div>
+        <button id="back-button" class="secondary-btn" onclick="resetApp()">最初に戻る</button>
     </div>
 </div>
 
@@ -111,12 +157,16 @@
         { name: "大凶", weight: 5 }
     ];
 
+    // コメントのプール（自由に増やしてください）
     const commentPool = {
-        "願望": ["時間はかかるが叶う。", "驚くほどスムーズに運ぶ。", "今は控えめにせよ。", "他人の助けで叶う。"],
-        "恋愛": ["思いやる心が縁を呼ぶ。", "焦りは禁物。ゆっくりと。", "予期せぬ出会いあり。", "誠実さが鍵。"],
-        "仕事": ["地道な努力が実る。", "新たな挑戦に吉。", "周囲との連携を大切に。", "一歩引いて全体を見よ。"],
-        "金運": ["無駄遣いを慎めば吉。", "臨時収入の予感。", "今は守りの時。", "計画的な支出を。"],
-        "健康": ["規則正しい生活が一番。", "休息を優先せよ。", "適度な運動が運気を上げる。", "旬のものを食べよ。"]
+        "願望": ["時を待てば必ず叶う。", "驚くほど順調に進む。", "今は控えめが吉。", "他人の助けで成就する。", "焦ると損をする。"],
+        "恋愛": ["誠実な心が縁を結ぶ。", "ゆっくりと愛を育め。", "予期せぬ良縁あり。", "自分磨きが鍵となる。", "相手の気持ちを考えよ。"],
+        "仕事": ["地道な努力が評価される。", "新たな分野に挑戦せよ。", "周囲との協調を大切に。", "全体を見渡す余裕を持て。", "準備不足に注意。"],
+        "金運": ["無駄を省けば蓄財できる。", "思わぬ臨時収入の予感。", "今は財布の紐を締めよ。", "計画的な運用が吉。", "甘い話には乗るな。"],
+        "健康": ["規則正しい生活を心がけよ。", "十分な休息が必要。", "適度な運動を取り入れよ。", "旬の食材が体に良い。", "ストレスを溜めるな。"],
+        "学問": ["日々の積み重ねが実を結ぶ。", "基礎を疎かにするな。", "集中できる環境を作れ。", "苦手を克服する好機。", "目標を高く持て。"],
+        "旅行": ["北の方角に吉あり。", "計画をしっかり立てよ。", "近場でのんびりが良い。", "旅先での出会いを大切に。", "忘れ物に注意。"],
+        "失物": ["身近な場所にある。", "探すのを止めると出る。", "高い所を探してみよ。", "人目につかない所にある。", "すぐには見つからぬ。"]
     };
 
     function startSelection() {
@@ -127,21 +177,27 @@
         for (let i = 1; i <= 10; i++) {
             const stick = document.createElement('div');
             stick.className = 'omikuji-stick';
-            stick.textContent = `第 ${i} 番`;
-            stick.onclick = () => processResult(); // 演出用関数を呼ぶ
+            stick.textContent = `${i}`;
+            // タッチデバイスでの反応を良くするため touchstart も設定
+            stick.addEventListener('touchstart', function(e){ e.preventDefault(); processResult(); }, {passive: false});
+            stick.addEventListener('click', processResult);
             container.appendChild(stick);
         }
     }
 
-    // 演出を挟んでから結果を表示する
+    let isProcessing = false; // 多重タップ防止
+
     function processResult() {
-        // 1. 選択画面を隠し、鑑定中画面を出す
+        if (isProcessing) return;
+        isProcessing = true;
+
         document.getElementById('selection-screen').classList.add('hidden');
         document.getElementById('loading-screen').classList.remove('hidden');
 
-        // 2. 2000ミリ秒（2秒）後に結果画面へ切り替える
+        // 2秒間の鑑定中演出
         setTimeout(() => {
             showFinalResult();
+            isProcessing = false;
         }, 2000);
     }
 
@@ -155,23 +211,45 @@
     }
 
     function showFinalResult() {
+        // 結果の生成処理
         const rank = getWeightedRank();
         document.getElementById('rank-display').textContent = rank;
-
         let html = "";
-        for (let category in commentPool) {
+        // カテゴリをランダムに5つ選んで表示する（全表示だと長いので）
+        const categories = Object.keys(commentPool).sort(() => 0.5 - Math.random()).slice(0, 5);
+        for (let category of categories) {
             const list = commentPool[category];
             const comment = list[Math.floor(Math.random() * list.length)];
             html += `<div class="detail-item"><span class="label">【${category}】</span>${comment}</div>`;
         }
         document.getElementById('details-display').innerHTML = html;
 
-        // 画面の切り替え
+        // 画面切り替え
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
+
+        // --- アニメーションの開始処理 ---
+        const scrollBox = document.getElementById('result-scroll-box');
+        const backButton = document.getElementById('back-button');
+        
+        // アニメーション用クラスをリセット（強制再描画）
+        scrollBox.classList.remove('scroll-animation');
+        backButton.classList.remove('fade-in');
+        void scrollBox.offsetWidth; // ブラウザにリフローを強制させるハック
+
+        // アニメーション開始
+        scrollBox.classList.add('scroll-animation');
+
+        // おみくじが開く時間（2.5秒）待ってからボタンを表示
+        setTimeout(() => {
+            backButton.classList.add('fade-in');
+        }, 2500);
     }
 
     function resetApp() {
+        // 状態をリセット
+        document.getElementById('result-scroll-box').classList.remove('scroll-animation');
+        document.getElementById('back-button').classList.remove('fade-in');
         document.getElementById('result-screen').classList.add('hidden');
         document.getElementById('intro-screen').classList.remove('hidden');
     }
