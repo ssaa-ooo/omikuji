@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>選べる・八百万おみくじ</title>
+    <title>本格・選べる八百万おみくじ</title>
     <style>
         body {
             font-family: "Hiragino Mincho ProN", "serif";
@@ -25,10 +25,10 @@
         }
         h1 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-top: 0; }
         
-        /* 選択画面のレイアウト */
+        /* 選択画面 */
         .selection-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* スマホで見やすい2列 */
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             margin-top: 20px;
         }
@@ -40,13 +40,27 @@
             font-weight: bold;
             cursor: pointer;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-            transition: transform 0.2s, background-color 0.2s;
+            transition: 0.2s;
             border: 2px solid #bca67e;
         }
         .omikuji-stick:active {
-            transform: scale(0.95);
+            transform: scale(0.9);
             background-color: #d32f2f;
             color: white;
+        }
+
+        /* 鑑定中（待ち時間）の演出 */
+        .loading-text {
+            font-size: 1.5rem;
+            color: #d32f2f;
+            font-weight: bold;
+            margin: 50px 0;
+            animation: pulse 1.2s infinite; /* 点滅・拡大アニメーション */
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.7; }
         }
 
         /* 結果表示 */
@@ -74,8 +88,12 @@
 
     <div id="selection-screen" class="hidden">
         <p>10本の棒から1つ選んでください</p>
-        <div class="selection-grid" id="stick-container">
-            </div>
+        <div class="selection-grid" id="stick-container"></div>
+    </div>
+
+    <div id="loading-screen" class="hidden">
+        <div class="loading-text">運勢を鑑定中...</div>
+        <p>しばらくお待ちください</p>
     </div>
 
     <div id="result-screen" class="hidden">
@@ -104,18 +122,27 @@
     function startSelection() {
         document.getElementById('intro-screen').classList.add('hidden');
         document.getElementById('selection-screen').classList.remove('hidden');
-        
         const container = document.getElementById('stick-container');
-        container.innerHTML = ''; // リセット
-        
-        // 10本の棒を作成
+        container.innerHTML = '';
         for (let i = 1; i <= 10; i++) {
             const stick = document.createElement('div');
             stick.className = 'omikuji-stick';
             stick.textContent = `第 ${i} 番`;
-            stick.onclick = () => showResult();
+            stick.onclick = () => processResult(); // 演出用関数を呼ぶ
             container.appendChild(stick);
         }
+    }
+
+    // 演出を挟んでから結果を表示する
+    function processResult() {
+        // 1. 選択画面を隠し、鑑定中画面を出す
+        document.getElementById('selection-screen').classList.add('hidden');
+        document.getElementById('loading-screen').classList.remove('hidden');
+
+        // 2. 2000ミリ秒（2秒）後に結果画面へ切り替える
+        setTimeout(() => {
+            showFinalResult();
+        }, 2000);
     }
 
     function getWeightedRank() {
@@ -127,7 +154,7 @@
         return "吉";
     }
 
-    function showResult() {
+    function showFinalResult() {
         const rank = getWeightedRank();
         document.getElementById('rank-display').textContent = rank;
 
@@ -139,7 +166,8 @@
         }
         document.getElementById('details-display').innerHTML = html;
 
-        document.getElementById('selection-screen').classList.add('hidden');
+        // 画面の切り替え
+        document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
     }
 
